@@ -1,10 +1,10 @@
 package com.hackathon.hackathon_backend.controller;
 
-import com.hackathon.hackathon_backend.dtos.SimulacaoListagemDTO;
-import com.hackathon.hackathon_backend.dtos.SimulacaoRequestDTO;
-import com.hackathon.hackathon_backend.dtos.SimulacaoResponseDTO;
-import com.hackathon.hackathon_backend.dtos.SimulacaoVolumeDTO;
-import com.hackathon.hackathon_backend.dtos.TelemetriaDTO;
+import com.hackathon.hackathon_backend.dtos.response.SimulacaoListagemDTO;
+import com.hackathon.hackathon_backend.dtos.request.SimulacaoRequestDTO;
+import com.hackathon.hackathon_backend.dtos.response.SimulacaoResponseDTO;
+import com.hackathon.hackathon_backend.dtos.response.SimulacaoVolumeDTO;
+import com.hackathon.hackathon_backend.dtos.response.TelemetriaDTO;
 import com.hackathon.hackathon_backend.services.SimulacaoService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -27,8 +27,10 @@ public class SimulacaoController {
     }
 
     @GetMapping("/historico")
-    public ResponseEntity<SimulacaoListagemDTO> listarHistorico(){
-        SimulacaoListagemDTO response = simulacaoService.listarSimulacoes();
+    public ResponseEntity<SimulacaoListagemDTO> listarHistorico(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size){
+        SimulacaoListagemDTO response = simulacaoService.listarSimulacoes(page, size);
         return ResponseEntity.ok(response);
     }
 
