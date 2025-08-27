@@ -1,7 +1,6 @@
-package com.hackathon.hackathon_backend.dtos;
+package com.hackathon.hackathon_backend.dtos.response;
 
 import lombok.Data;
-import java.math.BigDecimal;
 
 @Data
 public class SimulacaoProdutoVolumeDTO {

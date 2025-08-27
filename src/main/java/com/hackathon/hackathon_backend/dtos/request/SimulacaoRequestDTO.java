@@ -1,4 +1,4 @@
-package com.hackathon.hackathon_backend.dtos;
+package com.hackathon.hackathon_backend.dtos.request;
 
 import lombok.Data;
 
