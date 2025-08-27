@@ -6,7 +6,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.hackathon.hackathon_backend.dtos.*;
+import com.hackathon.hackathon_backend.dtos.request.SimulacaoRequestDTO;
+import com.hackathon.hackathon_backend.dtos.response.*;
 import com.hackathon.hackathon_backend.exceptions.ProdutoNotFoundException;
 import com.hackathon.hackathon_backend.models.remote.Produto;
 import com.hackathon.hackathon_backend.models.local.Simulacao;
@@ -15,6 +16,8 @@ import com.hackathon.hackathon_backend.repositories.remote.ProdutoRepository;
 import com.hackathon.hackathon_backend.repositories.local.SimulacaoRepository;
 import com.hackathon.hackathon_backend.repositories.local.TelemetriaRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
@@ -216,16 +219,16 @@ public class SimulacaoService {
     }
 
     // Retornanado todas as simulações realizadas.
-    public SimulacaoListagemDTO listarSimulacoes(){
+    public SimulacaoListagemDTO listarSimulacoes(int page, int size){
         long startTime = System.currentTimeMillis();
         int httpStatusCode = HttpStatus.INTERNAL_SERVER_ERROR.value();
         try {
-            List<Simulacao> simulacoes = simulacaoRepository.findAll();
-            List<SimulacaoResumoDTO> registros = montarRegistros(simulacoes);
+            Page<Simulacao> simulacoesPage = simulacaoRepository.findAll(PageRequest.of(page, size));
+            List<SimulacaoResumoDTO> registros = montarRegistros(simulacoesPage.getContent());
             SimulacaoListagemDTO response = new SimulacaoListagemDTO();
-            response.setPagina(1);
-            response.setQtdRegistros(registros.size());
-            response.setQtdRegistrosPagina(registros.size());
+            response.setPagina(simulacoesPage.getNumber());
+            response.setQtdRegistros((int) simulacoesPage.getTotalElements());
+            response.setQtdRegistrosPagina(simulacoesPage.getNumberOfElements());
             response.setRegistros(registros);
             httpStatusCode = HttpStatus.OK.value();
             return response;
@@ -254,21 +257,25 @@ public class SimulacaoService {
                 });
 
                 if (resultados != null && !resultados.isEmpty()) {
-                    Optional<ResultadoSimulacao> resultadoPrice = resultados.stream()
-                            .filter(r -> "PRICE".equals(r.getTipo()))
-                            .findFirst();
+                    double totalSac = 0.0;
+                    double totalPrice = 0.0;
 
-                    if (resultadoPrice.isPresent()) {
-                        double valorCredito = resultadoPrice.get().getParcelas().stream()
-                                .mapToDouble(Parcela::getValorPrestacao)
-                                .sum();
-                        totalValorCredito += valorCredito;
-
-                        double valorMedio = resultadoPrice.get().getParcelas().stream()
-                                .mapToDouble(Parcela::getValorPrestacao)
-                                .sum();
-                        totalValorPrestacao += valorMedio;
+                    for (ResultadoSimulacao resultado : resultados) {
+                        if ("SAC".equals(resultado.getTipo())) {
+                            totalSac = resultado.getParcelas().stream()
+                                    .mapToDouble(Parcela::getValorPrestacao)
+                                    .sum();
+                        } else if ("PRICE".equals(resultado.getTipo())) {
+                            totalPrice = resultado.getParcelas().stream()
+                                    .mapToDouble(Parcela::getValorPrestacao)
+                                    .sum();
+                        }
                     }
+
+                    // Escolhe o menor valor total entre os dois sistemas
+                    double valorTotalSimulacao = Math.min(totalSac, totalPrice);
+                    totalValorCredito += valorTotalSimulacao;
+                    totalValorPrestacao += valorTotalSimulacao;
                 }
             } catch (Exception e) {
                 // Lidar com o erro de JSON
@@ -310,11 +317,11 @@ public class SimulacaoService {
                     .collect(Collectors.toList());
 
             // Monta a resposta
-            SimulacaoVolumeDTO responde = new SimulacaoVolumeDTO();
-            responde.setDataReferencia(dataReferencia);
-            responde.setSimulacoes(volumes);
+            SimulacaoVolumeDTO response = new SimulacaoVolumeDTO();
+            response.setDataReferencia(dataReferencia);
+            response.setSimulacoes(volumes);
             httpStatusCode = HttpStatus.OK.value();
-            return responde;
+            return response;
         } finally {
             long endTime = System.currentTimeMillis();
             long tempoExecucao = endTime - startTime;
