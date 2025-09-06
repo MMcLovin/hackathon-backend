@@ -49,3 +49,4 @@ build/
 # Credenciais 
 .env
 .env.local
+.env
