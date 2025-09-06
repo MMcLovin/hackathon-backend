@@ -45,3 +45,7 @@ build/
 .mvn/
 .mvnw
 .mvnw.cmd
+
+# Credenciais 
+.env
+.env.local
